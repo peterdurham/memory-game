@@ -5,6 +5,14 @@ export default function Home() {
   const [options, setOptions] = useState(null);
   const [highScore, setHighScore] = useState(0);
 
+  useEffect(() => {
+    const json = localStorage.getItem("memorygamehighscore");
+    const savedScore = JSON.parse(json);
+    if (savedScore) {
+      setHighScore(savedScore);
+    }
+  }, []);
+
   return (
     <div>
       <div className="container">
@@ -37,7 +45,12 @@ export default function Home() {
       </div>
 
       {options ? (
-        <MemoryGame options={options} />
+        <MemoryGame
+          options={options}
+          setOptions={setOptions}
+          highScore={highScore}
+          setHighScore={setHighScore}
+        />
       ) : (
         <h2>Choose a difficulty to begin!</h2>
       )}
@@ -54,6 +67,23 @@ export default function Home() {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+          }
+          button {
+            background: #00ad9f;
+            border-radius: 4px;
+            font-weight: 700;
+            color: #fff;
+            border: none;
+            padding: 7px 15px;
+            margin-left: 8px;
+            cursor: pointer;
+          }
+          button:hover {
+            background: #008378;
+          }
+          button:focus {
+            outline: 0;
           }
           #cards {
             width: 1060px;
@@ -98,7 +128,7 @@ export default function Home() {
   );
 }
 
-function MemoryGame({ options, setOptions, setHighScore }) {
+function MemoryGame({ options, setOptions, highScore, setHighScore }) {
   const [game, setGame] = useState([]);
   const [flippedCount, setFlippedCount] = useState(0);
   const [flippedIndexes, setFlippedIndexes] = useState([]);
@@ -142,15 +172,45 @@ function MemoryGame({ options, setOptions, setHighScore }) {
   }, []);
 
   useEffect(() => {
-    console.log(game);
     const finished = !game.some((card) => !card.flipped);
     if (finished && game.length > 0) {
       setTimeout(() => {
-        const newGame = confirm("YOU WIN! NEW GAME?");
-        console.log(newGame);
+        const bestPossible = game.length;
+        let multiplier;
 
-        // if confirm, show menu options
-        // set high score
+        if (options === 12) {
+          multiplier = 5;
+        } else if (options === 18) {
+          multiplier = 2.5;
+        } else if (options === 24) {
+          multiplier = 1;
+        }
+
+        const pointsLost = multiplier * (0.66 * flippedCount - bestPossible);
+
+        let score;
+        if (pointsLost < 100) {
+          score = 100 - pointsLost;
+        } else {
+          score = 0;
+        }
+
+        if (score > highScore) {
+          setHighScore(score);
+          const json = JSON.stringify(score);
+          localStorage.setItem("memorygamehighscore", json);
+        }
+
+        const newGame = confirm("You Win!, SCORE: " + score + " New Game?");
+        if (newGame) {
+          const gameLength = game.length;
+          setOptions(null);
+          setTimeout(() => {
+            setOptions(gameLength);
+          }, 5);
+        } else {
+          setOptions(null);
+        }
       }, 500);
     }
   }, [game]);
